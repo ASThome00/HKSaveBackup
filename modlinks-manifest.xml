@@ -1,0 +1,19 @@
+<!--
+  Modlinks manifest for submission to https://github.com/hk-modding/modlinks
+  (append to ModLinks.xml). Before submitting:
+    1. Run scripts\package.ps1 to build the release zip and print its SHA256.
+    2. Create a GitHub release, attach the zip, and put its download URL in Link.
+    3. Replace REPLACE_WITH_SHA256 with the printed hash (uppercase hex).
+  Publishing is a manual decision - this file is prepared, not submitted.
+-->
+<Manifest>
+    <Name>HKSaveBackup</Name>
+    <Description>Automatic save-file backups and in-game restore, aimed at Steel Soul runs. Backs up each save the moment the game writes it (outside the Steam Cloud folder), keeps a configurable ring of timestamped backups per slot, and can restore one from the main menu with a pre-restore snapshot so nothing is ever lost.</Description>
+    <Version>1.0.0.0</Version>
+    <Link SHA256="REPLACE_WITH_SHA256"><![CDATA[https://github.com/ASThome00/HKSaveBackup/releases/download/v1.0.0.0/HKSaveBackup.zip]]></Link>
+    <Dependencies />
+    <Repository><![CDATA[https://github.com/ASThome00/HKSaveBackup]]></Repository>
+    <Tags>
+        <Tag>Utility</Tag>
+    </Tags>
+</Manifest>
