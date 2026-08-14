@@ -31,6 +31,10 @@
       <HintPath>$(HollowKnightRefs)\UnityEngine.UIModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="UnityEngine.TextRenderingModule">
+      <HintPath>$(HollowKnightRefs)\UnityEngine.TextRenderingModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
   </ItemGroup>
 
   <!-- Convenience: copy the built mod into the game's Mods folder when InstallToGame=true (set in local.props). -->

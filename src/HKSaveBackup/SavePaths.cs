@@ -33,6 +33,10 @@ namespace HKSaveBackup
             return Path.Combine(Application.persistentDataPath, fileName);
         }
 
+        /// <summary>The Modding API's per-save mod-data file (GameManager.ModdedSavePath).</summary>
+        public static string GetModdedJsonPath(int slot) =>
+            Path.Combine(Application.persistentDataPath, $"user{slot}.modded.json");
+
         public static string ResolveBackupRoot(string configuredDirectory)
         {
             if (!string.IsNullOrEmpty(configuredDirectory))

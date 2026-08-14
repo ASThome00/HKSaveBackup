@@ -79,7 +79,7 @@ namespace HKSaveBackup
 
                 BackupStore store = CreateStore();
                 BackupEntry entry = store.WriteBackup(livePath, metadata, settings.MaxBackupsPerSlot,
-                    out IReadOnlyList<string> pruned);
+                    out IReadOnlyList<string> pruned, SavePaths.GetModdedJsonPath(saveSlot));
                 _lastBackupUtc[saveSlot] = metadata.TimestampUtc;
 
                 _log.Log($"Backed up slot {saveSlot} ({livePath}) -> {entry.DatPath} " +

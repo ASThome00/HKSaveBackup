@@ -10,12 +10,17 @@ namespace HKSaveBackup
     /// Backups are taken after the game finishes committing a save to disk; restore is
     /// offered from the mod menu while on the main menu. The mod is gameplay-inert.
     /// </summary>
-    public class HKSaveBackupMod : Mod, ITogglableMod, IGlobalSettings<GlobalSettings>
+    public class HKSaveBackupMod : Mod, ITogglableMod, IGlobalSettings<GlobalSettings>, ICustomMenuMod
     {
         internal static HKSaveBackupMod Instance { get; private set; }
 
         private GlobalSettings _settings = new GlobalSettings();
         private BackupService _backupService;
+        private RestoreService _restoreService;
+        private ModMenu _menu;
+
+        /// <summary>The API renders the on/off toggle in the mod list itself.</summary>
+        public bool ToggleButtonInsideMenu => false;
 
         public HKSaveBackupMod() : base("HKSaveBackup")
         {
@@ -36,6 +41,8 @@ namespace HKSaveBackup
         {
             Instance = this;
             _backupService = new BackupService(this, () => _settings, new RealFileSystem());
+            _restoreService = new RestoreService(this, _backupService);
+            _menu = new ModMenu(this, _restoreService);
 
             // SaveGame(int, Action<bool>) is the single commit path: both parameterless
             // overloads funnel into it, and it hands the platform layer a completion
@@ -52,6 +59,13 @@ namespace HKSaveBackup
             On.GameManager.SaveGame_int_Action1 -= OnSaveGame;
             Instance = null;
             Log("Unloaded; save hook removed.");
+        }
+
+        public MenuScreen GetMenuScreen(MenuScreen modListMenu, ModToggleDelegates? toggleDelegates)
+        {
+            // Built lazily in Initialize-order safety: the mod list constructs menus after
+            // all mods have initialized, so _menu is non-null by the time this runs.
+            return _menu.BuildRootScreen(modListMenu);
         }
 
         private void OnSaveGame(On.GameManager.orig_SaveGame_int_Action1 orig, GameManager self,
