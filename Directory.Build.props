@@ -1,0 +1,17 @@
+<Project>
+  <!--
+    HollowKnightRefs points at the game's Managed folder, which provides the
+    reference assemblies (Assembly-CSharp.dll, MMHOOK_Assembly-CSharp.dll, ...).
+    Override it on another machine either on the command line:
+      dotnet build -p:HollowKnightRefs="D:\Steam\steamapps\common\Hollow Knight\hollow_knight_Data\Managed"
+    or by creating a local.props file next to this one (gitignored):
+      <Project><PropertyGroup><HollowKnightRefs>...</HollowKnightRefs></PropertyGroup></Project>
+  -->
+  <PropertyGroup>
+    <HollowKnightRefs Condition="'$(HollowKnightRefs)' == ''">C:\Program Files (x86)\Steam\steamapps\common\Hollow Knight\hollow_knight_Data\Managed</HollowKnightRefs>
+    <LangVersion>9.0</LangVersion>
+    <ModVersion>1.0.0.0</ModVersion>
+  </PropertyGroup>
+
+  <Import Project="$(MSBuildThisFileDirectory)local.props" Condition="Exists('$(MSBuildThisFileDirectory)local.props')" />
+</Project>

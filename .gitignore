@@ -1,0 +1,19 @@
+# Build output
+bin/
+obj/
+dist/
+
+# Machine-local MSBuild overrides (game install path etc.)
+local.props
+
+# Game assemblies must never be committed
+*.dll
+!packages/**/*.dll
+
+# IDE
+.vs/
+.idea/
+*.user
+
+# Test results
+TestResults/

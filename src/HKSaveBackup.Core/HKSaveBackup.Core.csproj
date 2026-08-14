@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <AssemblyVersion>$(ModVersion)</AssemblyVersion>
+    <FileVersion>$(ModVersion)</FileVersion>
+    <!-- Pure logic: no game or Unity references allowed in this project. -->
+  </PropertyGroup>
+</Project>
