@@ -28,6 +28,7 @@ namespace HKSaveBackup
     {
         private readonly HKSaveBackupMod _mod;
         private readonly RestoreService _restore;
+        private readonly SaveLoadService _loader;
 
         private MenuScreen _rootScreen;
         private MenuScreen _saveManagerScreen;
@@ -35,16 +36,24 @@ namespace HKSaveBackup
         private MenuScreen _confirmScreen;
         private MenuScreen _resultScreen;
 
+        /// <summary>
+        /// Screens replaced by a rebuild. Destroying one while it is still the screen the
+        /// player is standing on breaks UIManager's next transition (it fades out
+        /// currentDynamicMenu), so they are dropped one navigation later instead.
+        /// </summary>
+        private readonly List<MenuScreen> _retiredScreens = new List<MenuScreen>();
+
         private static readonly MenuButtonStyle RowStyle = new MenuButtonStyle
         {
             Height = new RelLength(105f),
             TextSize = 30,
         };
 
-        public ModMenu(HKSaveBackupMod mod, RestoreService restore)
+        public ModMenu(HKSaveBackupMod mod, RestoreService restore, SaveLoadService loader)
         {
             _mod = mod;
             _restore = restore;
+            _loader = loader;
         }
 
         public MenuScreen BuildRootScreen(MenuScreen modListMenu)
@@ -101,11 +110,12 @@ namespace HKSaveBackup
         /// </summary>
         private void OpenSaveManager()
         {
-            // Root is the current screen here, so every screen below it is safe to drop.
-            DestroyScreen(ref _resultScreen);
-            DestroyScreen(ref _confirmScreen);
-            DestroyScreen(ref _slotListScreen);
-            DestroyScreen(ref _saveManagerScreen);
+            // Root is the current screen here, so every screen below it can be retired.
+            RetireScreen(ref _resultScreen);
+            RetireScreen(ref _confirmScreen);
+            RetireScreen(ref _slotListScreen);
+            RetireScreen(ref _saveManagerScreen);
+            DestroyRetiredScreens();
 
             MenuBuilder builder = MenuUtils.CreateMenuBuilderWithBackButton(
                 "Save Manager", _rootScreen, out _);
@@ -200,11 +210,10 @@ namespace HKSaveBackup
 
         private void OpenSlotList(int slot)
         {
-            // The save manager is the current screen here, so the stale screens below it are
-            // safe to drop.
-            DestroyScreen(ref _slotListScreen);
-            DestroyScreen(ref _confirmScreen);
-            DestroyScreen(ref _resultScreen);
+            RetireScreen(ref _slotListScreen);
+            RetireScreen(ref _confirmScreen);
+            RetireScreen(ref _resultScreen);
+            DestroyRetiredScreens();
 
             MenuBuilder builder = MenuUtils.CreateMenuBuilderWithBackButton(
                 $"Slot {slot} Backups", _saveManagerScreen, out MenuButton backButton);
@@ -221,7 +230,10 @@ namespace HKSaveBackup
                 List<BackupEntry> entries;
                 try
                 {
-                    entries = _mod.BackupService.CreateStore().ListBackups(slot);
+                    // Ordering is Core's rule, not the menu's: the shortcut below picks
+                    // from the same sequence the rows are drawn from.
+                    entries = BackupSelection.OrderNewestFirst(
+                        _mod.BackupService.CreateStore().ListBackups(slot));
                 }
                 catch (Exception ex)
                 {
@@ -239,6 +251,12 @@ namespace HKSaveBackup
                 }
                 else
                 {
+                    // Newest non-snapshot backup: the one-action "put this run back the way
+                    // it was" target. Null when the slot only ever received pre-restore
+                    // snapshots, in which case the shortcut is simply not offered.
+                    BackupEntry latest = BackupSelection.LatestReloadCandidate(entries);
+                    int rowCount = entries.Count + (latest != null ? 1 : 0);
+
                     builder.AddContent(default(NullContentLayout), c => c.AddScrollPaneContent(
                         new ScrollbarConfig
                         {
@@ -256,10 +274,27 @@ namespace HKSaveBackup
                                 Offset = new Vector2(-310f, 0f),
                             },
                         },
-                        new RelLength(entries.Count * 105f),
+                        new RelLength(rowCount * 105f),
                         RegularGridLayout.CreateVerticalLayout(105f),
                         c2 =>
                         {
+                            if (latest != null)
+                            {
+                                BackupEntry capturedLatest = latest;
+                                c2.AddMenuButton("RestoreLatestAndLoad", new MenuButtonConfig
+                                {
+                                    Label = "Restore Latest & Load",
+                                    Description = new DescriptionInfo
+                                    {
+                                        Text = $"Roll slot {slot} back to {FormatEntryLabel(latest)} and start playing it",
+                                    },
+                                    SubmitAction = _ => OpenConfirm(capturedLatest, loadAfterRestore: true),
+                                    CancelAction = _ => UIManager.instance.UIGoToDynamicMenu(_saveManagerScreen),
+                                    Proceed = true,
+                                    Style = RowStyle,
+                                });
+                            }
+
                             foreach (BackupEntry entry in entries)
                             {
                                 BackupEntry captured = entry;
@@ -267,7 +302,7 @@ namespace HKSaveBackup
                                 {
                                     Label = FormatEntryLabel(entry),
                                     Description = new DescriptionInfo { Text = FormatEntryDescription(entry) },
-                                    SubmitAction = _ => OpenConfirm(captured),
+                                    SubmitAction = _ => OpenConfirm(captured, loadAfterRestore: false),
                                     CancelAction = _ => UIManager.instance.UIGoToDynamicMenu(_saveManagerScreen),
                                     Proceed = true,
                                     Style = RowStyle,
@@ -281,10 +316,16 @@ namespace HKSaveBackup
             UIManager.instance.UIGoToDynamicMenu(_slotListScreen);
         }
 
-        private void OpenConfirm(BackupEntry entry)
+        /// <summary>
+        /// The confirmation step, identical for both routes into a restore — the shortcut
+        /// only preselects the backup, it does not skip the confirmation or the Steam Cloud
+        /// warning.
+        /// </summary>
+        private void OpenConfirm(BackupEntry entry, bool loadAfterRestore)
         {
-            DestroyScreen(ref _confirmScreen);
-            DestroyScreen(ref _resultScreen);
+            RetireScreen(ref _confirmScreen);
+            RetireScreen(ref _resultScreen);
+            DestroyRetiredScreens();
 
             MenuBuilder builder = MenuUtils.CreateMenuBuilderWithBackButton(
                 "Confirm Restore", _slotListScreen, out _);
@@ -292,7 +333,12 @@ namespace HKSaveBackup
             string text =
                 $"Restore slot {entry.Slot} to:\n<b>{FormatEntryLabel(entry)}</b>\n\n" +
                 $"The current contents of slot {entry.Slot} will be snapshotted into the backup " +
-                "folder first, so nothing is lost.\n\n" +
+                "folder first, so nothing is lost.\n\n";
+            if (loadAfterRestore)
+            {
+                text += $"Slot {entry.Slot} will then be loaded straight away.\n\n";
+            }
+            text +=
                 "<b>Steam Cloud warning:</b> after restoring, fully exit Hollow Knight before loading " +
                 "the save. If the restored save does not stick, Steam Cloud has overwritten it: " +
                 "quit, disable Steam Cloud in the game's Steam properties, restore again, launch " +
@@ -316,8 +362,8 @@ namespace HKSaveBackup
                     new Vector2(0.5f, 0.12f), new Vector2(0.5f, 0.5f))),
                 c => c.AddMenuButton("RestoreNow", new MenuButtonConfig
                 {
-                    Label = "Restore Now",
-                    SubmitAction = _ => DoRestore(entry),
+                    Label = loadAfterRestore ? "Restore & Load" : "Restore Now",
+                    SubmitAction = _ => DoRestore(entry, loadAfterRestore),
                     CancelAction = _ => UIManager.instance.UIGoToDynamicMenu(_slotListScreen),
                     Proceed = true,
                 }));
@@ -326,15 +372,49 @@ namespace HKSaveBackup
             UIManager.instance.UIGoToDynamicMenu(_confirmScreen);
         }
 
-        private void DoRestore(BackupEntry entry)
+        private void DoRestore(BackupEntry entry, bool loadAfterRestore)
         {
             RestoreResult result = _restore.Restore(entry);
 
-            DestroyScreen(ref _resultScreen);
+            // Loading is only ever attempted on a reported success; on any other outcome,
+            // and on any failure to get the load started, the result screen is the fallback.
+            if (result.Success && loadAfterRestore)
+                TryLoad(entry, result);
+            else
+                ShowResult(entry, result, null);
+        }
+
+        /// <summary>
+        /// Hand the restored slot to the game's load path. Anything that stops the load —
+        /// now or after the asynchronous slot re-read — lands on the result screen with the
+        /// reason, so the UI is never left mid-transition.
+        /// </summary>
+        private void TryLoad(BackupEntry entry, RestoreResult result)
+        {
+            try
+            {
+                if (_loader.BeginLoad(entry.Slot, problem => ShowResult(entry, result, problem)))
+                    return;
+            }
+            catch (Exception ex)
+            {
+                _mod.LogError($"Load of slot {entry.Slot} could not be started: {ex}");
+            }
+
+            ShowResult(entry, result, "the load could not be started - see ModLog.txt");
+        }
+
+        private void ShowResult(BackupEntry entry, RestoreResult result, string loadProblem)
+        {
+            RetireScreen(ref _resultScreen);
+            DestroyRetiredScreens();
+
             MenuBuilder builder = MenuUtils.CreateMenuBuilderWithBackButton(
                 result.Success ? "Restore Complete" : "Restore Failed", _saveManagerScreen, out _);
 
             string text = result.Message;
+            if (loadProblem != null)
+                text += $"\n\n<b>The save was not loaded:</b> {loadProblem}. The restore itself stands.";
             if (result.Success)
             {
                 text += "\n\nFully exit Hollow Knight before loading the restored save, so Steam Cloud " +
@@ -342,18 +422,41 @@ namespace HKSaveBackup
                         "old state after a restart, follow the Steam Cloud steps from the confirmation screen.";
             }
 
-            AddInfoText(builder, text);
+            // Offering the load is gated on the same rule the load itself enforces: main
+            // menu only. Anywhere else the button would just refuse itself.
+            bool offerLoad = result.Success && RestoreService.IsAtMainMenu();
+
+            AddInfoText(builder, text, offerLoad ? 0.68f : 0.6f, offerLoad ? 550f : 600f);
+
+            if (offerLoad)
+            {
+                builder.AddContent(
+                    new SingleContentLayout(new AnchoredPosition(
+                        new Vector2(0.5f, 0.12f), new Vector2(0.5f, 0.5f))),
+                    c => c.AddMenuButton("LoadRestoredSave", new MenuButtonConfig
+                    {
+                        Label = "Load This Save Now",
+                        Description = new DescriptionInfo
+                        {
+                            Text = $"Start playing slot {entry.Slot} from the restored file",
+                        },
+                        SubmitAction = _ => TryLoad(entry, result),
+                        CancelAction = _ => UIManager.instance.UIGoToDynamicMenu(_saveManagerScreen),
+                        Proceed = true,
+                    }));
+            }
+
             _resultScreen = builder.Build();
             UIManager.instance.UIGoToDynamicMenu(_resultScreen);
         }
 
-        private static void AddInfoText(MenuBuilder builder, string text)
+        private static void AddInfoText(MenuBuilder builder, string text, float anchorY = 0.6f, float height = 600f)
         {
             builder.AddContent(
                 new SingleContentLayout(new AnchoredPosition(
-                    new Vector2(0.5f, 0.6f), new Vector2(0.5f, 0.5f))),
+                    new Vector2(0.5f, anchorY), new Vector2(0.5f, 0.5f))),
                 c => c.AddTextPanel("InfoText",
-                    new RelVector2(new Vector2(1500f, 600f)),
+                    new RelVector2(new Vector2(1500f, height)),
                     new TextPanelConfig
                     {
                         Text = text,
@@ -394,11 +497,26 @@ namespace HKSaveBackup
             return $"{mode}  -  playtime {(int)playtime.TotalHours}h {playtime.Minutes:D2}m  -  game {m.GameVersion}";
         }
 
-        private static void DestroyScreen(ref MenuScreen screen)
+        private void RetireScreen(ref MenuScreen screen)
         {
-            if (screen != null && screen.gameObject != null)
-                UnityEngine.Object.Destroy(screen.gameObject);
+            if (screen != null)
+                _retiredScreens.Add(screen);
             screen = null;
+        }
+
+        /// <summary>Destroy every retired screen the player is not currently standing on.</summary>
+        private void DestroyRetiredScreens()
+        {
+            MenuScreen current = UIManager.instance != null ? UIManager.instance.currentDynamicMenu : null;
+            for (int i = _retiredScreens.Count - 1; i >= 0; i--)
+            {
+                MenuScreen screen = _retiredScreens[i];
+                if (screen != null && screen == current)
+                    continue;
+                if (screen != null && screen.gameObject != null)
+                    UnityEngine.Object.Destroy(screen.gameObject);
+                _retiredScreens.RemoveAt(i);
+            }
         }
     }
 }
