@@ -1,3 +1,5 @@
+using HKSaveBackup.Core;
+
 namespace HKSaveBackup
 {
     /// <summary>
@@ -30,5 +32,34 @@ namespace HKSaveBackup
         /// <summary>Also back up non-Steel-Soul saves. Off by default to avoid spamming
         /// backups on ordinary playthroughs.</summary>
         public bool BackupNormalSaves = false;
+
+        /// <summary>
+        /// Only back up saves the game commits on its way out of gameplay — i.e. the save
+        /// inside GameManager.ReturnToMainMenu. Bench, story and autosave commits are skipped.
+        /// Off by default: for a Steel Soul run the bench save IS the safety net, and a
+        /// quit-only backup can be hours behind the death it is meant to undo.
+        /// </summary>
+        public bool BackupOnQuitOnly = false;
+
+        /// <summary>
+        /// Per-save-slot opt-out, index 0 = slot 1. A disabled slot still restores normally;
+        /// only automatic backups stop. Read through <see cref="IsSlotEnabled"/> — this array
+        /// is user-editable JSON and may be null, short, or long.
+        /// </summary>
+        public bool[] SlotEnabled = { true, true, true, true };
+
+        /// <summary>The number of save slots the settings menu exposes a toggle for.</summary>
+        public const int SlotCount = 4;
+
+        /// <summary>
+        /// Whether automatic backups are on for a slot. Slots outside the array (a hand-edited
+        /// or truncated settings file, or the legacy slot 0 "user.dat") count as enabled:
+        /// an unrecognised slot should still be protected.
+        /// </summary>
+        public bool IsSlotEnabled(int slot) => SlotToggles.IsEnabled(SlotEnabled, slot);
+
+        /// <summary>Sets the per-slot switch, growing/normalising the array as needed.</summary>
+        public void SetSlotEnabled(int slot, bool value) =>
+            SlotEnabled = SlotToggles.WithSlot(SlotEnabled, slot, value, SlotCount);
     }
 }

@@ -48,8 +48,8 @@ user1_20260814-193042_Crossroads_19.json   <- metadata: scene, completion %, geo
 The scene name in the filename is deliberate: when you want "the backup from before I
 walked into the Colosseum", you can find it by eye.
 
-**Restoring:** from the title screen, open *Options → Mods → HKSaveBackup*, pick
-*Restore Slot N*, choose a backup (newest first, with completion/geo/scene shown), and
+**Restoring:** from the title screen, open *Options → Mods → HKSaveBackup → Save Manager*,
+pick *Restore Slot N*, choose a backup (newest first, with completion/geo/scene shown), and
 confirm. The save-select screen refreshes immediately — no game restart needed to see the
 restored save. Restore is refused while a save is loaded, because the game would re-save
 the in-memory state over your restored file.
@@ -81,6 +81,19 @@ Settings are editable in-game (*Options → Mods → HKSaveBackup*) and persiste
 | `MaxBackupsPerSlot` | `20` | Ring buffer size per slot; oldest backup pair is pruned first. |
 | `CooldownMinutes` | `0` | Minimum minutes between backups. `0` = every save. Saves are already naturally spaced (bench/story/quit), so this is an escape hatch, not a default. |
 | `BackupNormalSaves` | `false` | Also back up non-Steel-Soul saves. |
+| `BackupOnQuitOnly` | `false` | Only back up the save the game commits when you *Return to Menu*; bench, story and autosave commits are skipped. See the warning below. |
+| `SlotEnabled` | `[true, true, true, true]` | Per-save-slot switch for automatic backups (index 0 = slot 1). Restore is unaffected — a disabled slot still lists and restores its existing backups. |
+
+*Options → Mods → HKSaveBackup* opens the settings; the restore surface is one step deeper,
+under *Save Manager*. Settings are safe to change from the pause menu; restoring is only
+offered at the main menu.
+
+**About `BackupOnQuitOnly`:** it does what it says — the only save it keeps is the one
+`GameManager.ReturnToMainMenu` commits on the way out of gameplay. Quitting the game
+outright (or a crash, or a power cut) writes no save at all in vanilla Hollow Knight, so it
+produces no backup either. That makes this a "fewest possible backups" mode, not a safer
+one: on a Steel Soul run your newest backup can be hours behind the death it is meant to
+undo. Leave it off unless you specifically want that trade.
 
 `BackupDirectory` has no in-game editor (no text input in the menu system) — edit the JSON
 while the game is closed.

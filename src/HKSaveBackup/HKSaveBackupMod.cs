@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Reflection;
 using HKSaveBackup.Core;
 using Modding;
@@ -51,12 +52,20 @@ namespace HKSaveBackup
             // before the platform write completes on some platforms.
             On.GameManager.SaveGame_int_Action1 += OnSaveGame;
 
+            // ReturnToMainMenu is the one save the game commits on its way out of gameplay:
+            // it calls SaveGame(profileID, callback) itself and then spins until the callback
+            // lands, so a save committed while this coroutine is running is a quit save and
+            // nothing else. (EmergencyReturnToMenu, verified in the 1.5.78 decompile, does not
+            // save at all, and QuitGame only fades out and calls Application.Quit.)
+            On.GameManager.ReturnToMainMenu += OnReturnToMainMenu;
+
             Log($"Initialized. Backup root: {SavePaths.ResolveBackupRoot(_settings.BackupDirectory)}");
         }
 
         public void Unload()
         {
             On.GameManager.SaveGame_int_Action1 -= OnSaveGame;
+            On.GameManager.ReturnToMainMenu -= OnReturnToMainMenu;
             Instance = null;
             Log("Unloaded; save hook removed.");
         }
@@ -89,6 +98,37 @@ namespace HKSaveBackup
                 wrapped = callback;
             }
             orig(self, saveSlot, wrapped);
+        }
+
+        private IEnumerator OnReturnToMainMenu(On.GameManager.orig_ReturnToMainMenu orig,
+            GameManager self, GameManager.ReturnToMainMenuSaveModes saveMode, Action<bool> callback)
+        {
+            IEnumerator inner = orig(self, saveMode, callback);
+            BackupService service = _backupService;
+            if (inner == null || service == null)
+                return inner;
+            return TrackQuitToMenu(service, inner);
+        }
+
+        /// <summary>
+        /// Passes the game's quit coroutine straight through while the quit mark is raised.
+        /// The mark has to span the whole coroutine rather than just its creation: orig only
+        /// builds the state machine here, and the save happens once Unity starts stepping it.
+        /// </summary>
+        private static IEnumerator TrackQuitToMenu(BackupService service, IEnumerator inner)
+        {
+            service.BeginQuitToMenu();
+            try
+            {
+                while (inner.MoveNext())
+                    yield return inner.Current;
+            }
+            finally
+            {
+                // Runs on normal completion and when Unity stops the coroutine mid-quit
+                // (scene unload, object destroyed), so the mark cannot get stuck raised.
+                service.EndQuitToMenu();
+            }
         }
     }
 }

@@ -49,7 +49,7 @@ Default backup folder: `Documents\HKSaveBackup\`.
    `Skipped backup of slot N: Steel Soul run already dead (permadeathMode=2 death save)` —
    the death save must NOT appear in the backup folder.
 3. Return to the title screen (do not close the game).
-4. *Options → Mods → HKSaveBackup → Restore Slot N* → newest backup → read the
+4. *Options → Mods → HKSaveBackup → Save Manager → Restore Slot N* → newest backup → read the
    confirmation text → *Restore Now*.
 5. Back out to the save select: slot N shows the pre-death save (not shattered), with the
    bench location — **without restarting the game**.
@@ -58,7 +58,7 @@ Default backup folder: `Documents\HKSaveBackup\`.
 ## F. Restore is refused in-game + cloud warning shown (acceptance 6)
 
 1. Load any save (get in-game).
-2. Pause → *Options → Mods → HKSaveBackup → Restore Slot N*.
+2. Pause → *Options → Mods → HKSaveBackup → Save Manager → Restore Slot N*.
 3. The screen states restore is only available from the main menu and offers no backup
    list.
 4. Quit to menu, open the same screen: the backup list appears. Select one and verify the
@@ -79,3 +79,35 @@ Default backup folder: `Documents\HKSaveBackup\`.
 2. The game saves normally (no hang, no error dialog); `ModLog.txt` shows
    `Backup of slot N failed (game save is unaffected): ...`.
 3. Restore the folder's permissions and confirm the next bench rest backs up again.
+
+## I. Settings screen is reachable from the pause menu (feature 2)
+
+1. Load any save (get in-game), pause, *Options → Mods → HKSaveBackup*.
+2. The screen that opens is the settings list — no restore buttons on it — ending in a
+   *Save Manager* entry. Changing an option here does not require being at the title
+   screen.
+3. *Save Manager* → *Restore Slot N* still shows the main-menu gate message (this is
+   section F).
+
+## J. Per-slot backup switch (feature 2)
+
+1. On the Steel Soul save in slot N, set *Back Up Slot N* to **Off** in the settings
+   screen, back out to the title screen (settings persist on menu exit).
+2. Load the save, rest at a bench.
+3. No new pair appears in `Documents\HKSaveBackup\slotN\`; `ModLog.txt` has
+   `Skipped backup of slot N: automatic backups are turned off for this slot`.
+4. *Save Manager* still lists slot N and its existing backups, with the description
+   noting backups are off for that slot; restoring one still works.
+5. Set it back to **On**, rest again, confirm a backup appears.
+6. Restart the game and confirm the toggle round-trips (check `SlotEnabled` in
+   `HKSaveBackupMod.GlobalSettings.json`).
+
+## K. Backup When = Quit To Menu (feature 2)
+
+1. Set *Backup When* to **Quit To Menu**, load the Steel Soul save.
+2. Rest at a bench: no new backup; `ModLog.txt` has
+   `Skipped backup of slot N: not a quit-to-menu save and BackupOnQuitOnly is on`.
+3. Pause → *Return to Menu*. Exactly one new backup pair appears for slot N, and
+   `ModLog.txt` has the matching `Backed up slot N` line.
+4. Set *Backup When* back to **Every Save** and confirm bench saves back up again — this
+   proves the mark is not stuck raised after the quit.
