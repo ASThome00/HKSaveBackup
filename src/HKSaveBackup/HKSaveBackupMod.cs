@@ -18,6 +18,7 @@ namespace HKSaveBackup
         private BackupService _backupService;
         private RestoreService _restoreService;
         private ModMenu _menu;
+        private MainMenuButton _mainMenuButton;
 
         /// <summary>The API renders the on/off toggle in the mod list itself.</summary>
         public bool ToggleButtonInsideMenu => false;
@@ -51,12 +52,18 @@ namespace HKSaveBackup
             // before the platform write completes on some platforms.
             On.GameManager.SaveGame_int_Action1 += OnSaveGame;
 
+            // Title-screen shortcut into the same manager the mod list opens. Purely additive:
+            // if the injection fails it logs and the vanilla menu is left as it was.
+            _mainMenuButton = new MainMenuButton(this, _menu);
+            _mainMenuButton.Hook();
+
             Log($"Initialized. Backup root: {SavePaths.ResolveBackupRoot(_settings.BackupDirectory)}");
         }
 
         public void Unload()
         {
             On.GameManager.SaveGame_int_Action1 -= OnSaveGame;
+            _mainMenuButton?.Unhook();
             Instance = null;
             Log("Unloaded; save hook removed.");
         }
