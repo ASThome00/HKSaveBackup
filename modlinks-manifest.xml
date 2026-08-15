@@ -7,12 +7,12 @@
   Publishing is a manual decision - this file is prepared, not submitted.
 -->
 <Manifest>
-    <Name>HKSaveBackup</Name>
-    <Description>Automatic save-file backups and in-game restore, aimed at Steel Soul runs. Backs up each save the moment the game writes it (outside the Steam Cloud folder), keeps a configurable ring of timestamped backups per slot, and can restore one from the main menu with a pre-restore snapshot so nothing is ever lost.</Description>
+    <Name>Tool Assisted Steelsoul</Name>
+    <Description>Insurance for Steel Soul runs: automatic save backups the moment the game writes them (outside the Steam Cloud folder), a ring of timestamped backups per slot, an in-game save manager to restore and reload a run without restarting, and an optional salvage-or-die prompt on Steel Soul death (off by default).</Description>
     <Version>1.0.0.0</Version>
-    <Link SHA256="REPLACE_WITH_SHA256"><![CDATA[https://github.com/ASThome00/HKSaveBackup/releases/download/v1.0.0.0/HKSaveBackup.zip]]></Link>
+    <Link SHA256="REPLACE_WITH_SHA256"><![CDATA[https://github.com/ASThome00/ToolAssistedSteelsoul/releases/download/v1.0.0.0/ToolAssistedSteelsoul.zip]]></Link>
     <Dependencies />
-    <Repository><![CDATA[https://github.com/ASThome00/HKSaveBackup]]></Repository>
+    <Repository><![CDATA[https://github.com/ASThome00/ToolAssistedSteelsoul]]></Repository>
     <Tags>
         <Tag>Utility</Tag>
     </Tags>

@@ -1,4 +1,4 @@
-# HKSaveBackup
+# Tool Assisted Steelsoul (TAS)
 
 Automatic save-file backups and in-game restore for **Hollow Knight 1.5.x** — insurance for
 Steel Soul (permadeath) runs. A death no longer destroys hours of progress: the mod keeps a
@@ -25,20 +25,20 @@ Not for Silksong — Silksong uses a different loader (BepInEx) and a different 
 **With Lumafly (manual install):** open Lumafly, use *Manual Install* and select the
 release zip, or drop the mod folder produced below into place.
 
-**Manual DLL drop:** copy the `HKSaveBackup` folder (containing `HKSaveBackup.dll` and
-`HKSaveBackup.Core.dll`) into:
+**Manual DLL drop:** copy the `ToolAssistedSteelsoul` folder (containing `ToolAssistedSteelsoul.dll` and
+`ToolAssistedSteelsoul.Core.dll`) into:
 
 ```
-<Steam>\steamapps\common\Hollow Knight\hollow_knight_Data\Managed\Mods\HKSaveBackup\
+<Steam>\steamapps\common\Hollow Knight\hollow_knight_Data\Managed\Mods\ToolAssistedSteelsoul\
 ```
 
-Launch the game; `HKSaveBackup` appears in the top-left mod list on the title screen.
+Launch the game; `ToolAssistedSteelsoul` appears in the top-left mod list on the title screen.
 
 ## Using it
 
 **Backups are automatic.** Rest at a bench, hit a story save, or quit to menu on a Steel
 Soul run and a timestamped backup pair appears in the backup folder (default:
-`Documents\HKSaveBackup\slotN\`):
+`Documents\ToolAssistedSteelsoul\slotN\`):
 
 ```
 user1_20260814-193042_Crossroads_19.dat    <- byte-for-byte copy of the save
@@ -48,7 +48,7 @@ user1_20260814-193042_Crossroads_19.json   <- metadata: scene, completion %, geo
 The scene name in the filename is deliberate: when you want "the backup from before I
 walked into the Colosseum", you can find it by eye.
 
-**Restoring:** from the title screen, open *Options → Mods → HKSaveBackup → Save Manager*,
+**Restoring:** from the title screen, open *Options → Mods → Tool Assisted Steelsoul → Save Manager*,
 pick *Restore Slot N*, choose a backup (newest first, with completion/geo/scene shown), and
 confirm. The save-select screen refreshes immediately — no game restart needed to see the
 restored save. Restore is refused while a save is loaded, because the game would re-save
@@ -58,7 +58,7 @@ the in-memory state over your restored file.
 
 Hollow Knight's saves live in a folder Steam Cloud syncs. After a Steel Soul death the
 dead save syncs to the cloud, and a restore can race against it. The mod stores backups
-**outside** the synced folder (that's why the default is `Documents\HKSaveBackup`), but the
+**outside** the synced folder (that's why the default is `Documents\ToolAssistedSteelsoul`), but the
 restored file itself is subject to sync. After restoring:
 
 1. **Fully exit** Hollow Knight, then relaunch and load the save.
@@ -71,13 +71,13 @@ confirmation screen.
 
 ## Configuration
 
-Settings are editable in-game (*Options → Mods → HKSaveBackup*) and persisted to
-`%APPDATA%\..\LocalLow\Team Cherry\Hollow Knight\HKSaveBackupMod.GlobalSettings.json`:
+Settings are editable in-game (*Options → Mods → Tool Assisted Steelsoul*) and persisted to
+`%APPDATA%\..\LocalLow\Team Cherry\Hollow Knight\ToolAssistedSteelsoulMod.GlobalSettings.json`:
 
 | Setting | Default | Meaning |
 | --- | --- | --- |
 | `Enabled` | `true` | Master switch for taking backups (restore always works). |
-| `BackupDirectory` | `""` | Backup location; empty means `Documents\HKSaveBackup`. Environment variables are expanded. Keep it **outside** the game's save folder — that folder is Steam Cloud-synced. |
+| `BackupDirectory` | `""` | Backup location; empty means `Documents\ToolAssistedSteelsoul`. Environment variables are expanded. Keep it **outside** the game's save folder — that folder is Steam Cloud-synced. |
 | `MaxBackupsPerSlot` | `20` | Ring buffer size per slot; oldest backup pair is pruned first. |
 | `CooldownMinutes` | `0` | Minimum minutes between backups. `0` = every save. Saves are already naturally spaced (bench/story/quit), so this is an escape hatch, not a default. |
 | `BackupNormalSaves` | `false` | Also back up non-Steel-Soul saves. |
@@ -86,7 +86,7 @@ Settings are editable in-game (*Options → Mods → HKSaveBackup*) and persiste
 | `DeathSalvagePrompt` | `false` | **Off by default.** On a Steel Soul death, pause before the death is committed and offer *salvage the run* / *let it die*. See below. |
 | `DeathSalvagePromptSeconds` | `20` | How long that prompt waits before choosing "let it die" on its own. Clamped to 5–120. |
 
-*Options → Mods → HKSaveBackup* opens the settings; the restore surface is one step deeper,
+*Options → Mods → Tool Assisted Steelsoul* opens the settings; the restore surface is one step deeper,
 under *Save Manager* (or directly via the title screen's *Save Backups* button). Settings
 are safe to change from the pause menu; restoring is only offered at the main menu.
 
@@ -133,8 +133,8 @@ folder — if you ever wonder whether the mod is protecting you, the log is the 
 ## Building from source
 
 ```
-git clone https://github.com/ASThome00/HKSaveBackup
-cd HKSaveBackup
+git clone https://github.com/ASThome00/ToolAssistedSteelsoul
+cd ToolAssistedSteelsoul
 dotnet build -c Release -p:HollowKnightRefs="C:\Program Files (x86)\Steam\steamapps\common\Hollow Knight\hollow_knight_Data\Managed"
 ```
 

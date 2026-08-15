@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ToolAssistedSteelsoul.Core/ToolAssistedSteelsoul.Core.csproj" />
+    <Project Path="src/ToolAssistedSteelsoul.Tests/ToolAssistedSteelsoul.Tests.csproj" />
+    <Project Path="src/ToolAssistedSteelsoul/ToolAssistedSteelsoul.csproj" />
+  </Folder>
+</Solution>

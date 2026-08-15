@@ -1,7 +1,0 @@
-<Solution>
-  <Folder Name="/src/">
-    <Project Path="src/HKSaveBackup.Core/HKSaveBackup.Core.csproj" />
-    <Project Path="src/HKSaveBackup.Tests/HKSaveBackup.Tests.csproj" />
-    <Project Path="src/HKSaveBackup/HKSaveBackup.csproj" />
-  </Folder>
-</Solution>

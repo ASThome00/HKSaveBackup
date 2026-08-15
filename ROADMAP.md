@@ -12,7 +12,7 @@ sections A (mod loads) and B (Steel Soul backup) verified; C–H pending.
 
 ### 1. Save manager on the main menu
 A dedicated button on the title screen (alongside Start Game / Options) opening the save
-manager directly, instead of the Options → Mods → HKSaveBackup path. Requires injecting a
+manager directly, instead of the Options → Mods → Tool Assisted Steelsoul path. Requires injecting a
 MenuButton into UIManager's main menu screen and its navigation graph — the mod-menu route
 stays as a fallback.
 

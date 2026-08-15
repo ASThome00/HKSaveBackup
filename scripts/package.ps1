@@ -3,17 +3,17 @@
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 
-dotnet build "$root\src\HKSaveBackup" -c Release -p:InstallToGame=false
+dotnet build "$root\src\ToolAssistedSteelsoul" -c Release -p:InstallToGame=false
 if ($LASTEXITCODE -ne 0) { throw "Build failed" }
 
-$stage = "$root\dist\HKSaveBackup"
+$stage = "$root\dist\ToolAssistedSteelsoul"
 if (Test-Path "$root\dist") { Remove-Item -Recurse -Force "$root\dist" }
 New-Item -ItemType Directory -Force $stage | Out-Null
 
-$bin = "$root\src\HKSaveBackup\bin\Release\net472"
-Copy-Item "$bin\HKSaveBackup.dll", "$bin\HKSaveBackup.Core.dll", "$root\README.md" $stage
+$bin = "$root\src\ToolAssistedSteelsoul\bin\Release\net472"
+Copy-Item "$bin\ToolAssistedSteelsoul.dll", "$bin\ToolAssistedSteelsoul.Core.dll", "$root\README.md" $stage
 
-$zip = "$root\dist\HKSaveBackup.zip"
+$zip = "$root\dist\ToolAssistedSteelsoul.zip"
 Compress-Archive -Path $stage -DestinationPath $zip
 
 $hash = (Get-FileHash $zip -Algorithm SHA256).Hash
