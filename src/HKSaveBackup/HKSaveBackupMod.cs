@@ -18,6 +18,7 @@ namespace HKSaveBackup
         private GlobalSettings _settings = new GlobalSettings();
         private BackupService _backupService;
         private RestoreService _restoreService;
+        private DeathSalvageService _deathSalvage;
         private ModMenu _menu;
         private MainMenuButton _mainMenuButton;
 
@@ -44,6 +45,7 @@ namespace HKSaveBackup
             Instance = this;
             _backupService = new BackupService(this, () => _settings, new RealFileSystem());
             _restoreService = new RestoreService(this, _backupService);
+            _deathSalvage = new DeathSalvageService(this, () => _settings, _backupService, _restoreService);
             _menu = new ModMenu(this, _restoreService, new SaveLoadService(this));
 
             // SaveGame(int, Action<bool>) is the single commit path: both parameterless
@@ -65,6 +67,10 @@ namespace HKSaveBackup
             _mainMenuButton = new MainMenuButton(this, _menu);
             _mainMenuButton.Hook();
 
+            // Death-salvage (default-off): a pass-through hook on GameManager.PlayerDead until
+            // the player turns the toggle on. See DeathSalvageService for the design.
+            _deathSalvage.Install();
+
             Log($"Initialized. Backup root: {SavePaths.ResolveBackupRoot(_settings.BackupDirectory)}");
         }
 
@@ -73,6 +79,7 @@ namespace HKSaveBackup
             On.GameManager.SaveGame_int_Action1 -= OnSaveGame;
             On.GameManager.ReturnToMainMenu -= OnReturnToMainMenu;
             _mainMenuButton?.Unhook();
+            _deathSalvage?.Uninstall();
             Instance = null;
             Log("Unloaded; save hook removed.");
         }
@@ -87,6 +94,17 @@ namespace HKSaveBackup
         private void OnSaveGame(On.GameManager.orig_SaveGame_int_Action1 orig, GameManager self,
             int saveSlot, Action<bool> callback)
         {
+            if (IsSaveRefused(saveSlot))
+            {
+                // A salvage is in flight: the in-memory PlayerData is the run that just died, and
+                // writing it would undo the salvage. Report success rather than failure - the
+                // write was deliberately skipped, not attempted, and a "false" here makes
+                // ReturnToMainMenu(SaveAndCancelOnFail) abort and strand the player in a dead
+                // session. Nothing on disk changes either way.
+                callback?.Invoke(true);
+                return;
+            }
+
             Action<bool> wrapped;
             try
             {
@@ -135,6 +153,23 @@ namespace HKSaveBackup
                 // Runs on normal completion and when Unity stops the coroutine mid-quit
                 // (scene unload, object destroyed), so the mark cannot get stuck raised.
                 service.EndQuitToMenu();
+            }
+        }
+
+        /// <summary>Exception-safe: any failure here means "let the game save", never the reverse.</summary>
+        private bool IsSaveRefused(int saveSlot)
+        {
+            try
+            {
+                if (_deathSalvage == null || !_deathSalvage.ShouldRefuseSaveCommit())
+                    return false;
+                LogWarn($"Refused a save commit for slot {saveSlot}: a death salvage is in flight.");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                LogError($"Save-suppression check failed; the game saves normally: {ex}");
+                return false;
             }
         }
     }

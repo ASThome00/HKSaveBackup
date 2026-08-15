@@ -209,6 +209,12 @@ namespace HKSaveBackup
                     i => s().BackupOnQuitOnly = i == 1,
                     () => s().BackupOnQuitOnly ? 1 : 0),
                 new IMenuMod.MenuEntry(
+                    "Death Salvage Prompt",
+                    new[] { "Off", "On" },
+                    "On Steel Soul death, ask before the run is lost (off = vanilla death)",
+                    i => s().DeathSalvagePrompt = i == 1,
+                    () => s().DeathSalvagePrompt ? 1 : 0),
+                new IMenuMod.MenuEntry(
                     "Backups Kept Per Slot",
                     Array.ConvertAll(retentionValues, v => v.ToString(CultureInfo.InvariantCulture)),
                     "Oldest backups are deleted beyond this count",

@@ -61,5 +61,24 @@ namespace HKSaveBackup
         /// <summary>Sets the per-slot switch, growing/normalising the array as needed.</summary>
         public void SetSlotEnabled(int slot, bool value) =>
             SlotEnabled = SlotToggles.WithSlot(SlotEnabled, slot, value, SlotCount);
+
+        /// <summary>
+        /// Offer "salvage this run / let it die" when a Steel Soul run dies, instead of letting
+        /// the death commit straight away.
+        ///
+        /// OFF BY DEFAULT, and deliberately so: every other part of this mod is gameplay-inert
+        /// (it copies files the game has already written), while this one interrupts the death
+        /// sequence and can undo a permadeath. Players who want the stakes intact never have to
+        /// opt out of anything. With this false the death path is the vanilla one, untouched.
+        /// </summary>
+        public bool DeathSalvagePrompt = false;
+
+        /// <summary>
+        /// Seconds the death prompt waits for an answer before choosing "let it die" on its own.
+        /// The timeout is a safety net, not a feature: if the overlay fails to draw or input
+        /// never arrives, the run must still resolve the way vanilla would, not hang forever.
+        /// Clamped to a sane range at use time.
+        /// </summary>
+        public double DeathSalvagePromptSeconds = 20;
     }
 }

@@ -80,6 +80,7 @@ Default backup folder: `Documents\HKSaveBackup\`.
    `Backup of slot N failed (game save is unaffected): ...`.
 3. Restore the folder's permissions and confirm the next bench rest backs up again.
 
+<<<<<<< HEAD
 ## I. Settings screen is reachable from the pause menu (feature 2)
 
 1. Load any save (get in-game), pause, *Options → Mods → HKSaveBackup*.
@@ -131,3 +132,48 @@ Default backup folder: `Documents\HKSaveBackup\`.
 7. In-game path: pause → *Options → Mods → HKSaveBackup → Save Manager → Restore Slot N*.
    The screen still refuses with the main-menu-only message, and no load button is offered
    anywhere.
+
+## M. Death salvage — toggle OFF (vanilla death is untouched)
+
+Do this one first, and on a throwaway Steel Soul save.
+
+1. Confirm *Options → Mods → HKSaveBackup → Death Salvage Prompt* reads **Off** (the
+   default; `DeathSalvagePrompt: false` in `HKSaveBackupMod.GlobalSettings.json`).
+2. Rest at a bench on a Steel Soul save (this is the save you will get back in test N), then
+   die deliberately.
+3. Expected: **no prompt, no overlay, no pause** — the death plays exactly as vanilla:
+   shatter, fade, PermaDeath cutscene, save select shows the slot shattered.
+4. `ModLog.txt` shows the usual
+   `Skipped backup of slot N: Steel Soul run already dead (permadeathMode=2 death save)`
+   and *no* death-salvage lines at all.
+5. Restore the pre-death backup from the mod menu (test E) so you have a live Steel Soul run
+   again for test N.
+
+## N. Death salvage — toggle ON (salvage)
+
+1. Turn *Death Salvage Prompt* **On**.
+2. Rest at a bench, note completion %/geo and the bench, then walk somewhere else and die
+   deliberately.
+3. Expected: at the moment of death the sequence stops and a black overlay reads
+   `STEEL SOUL DEATH`, names the save you would get back, and counts down.
+4. Press `Y` (or gamepad A). The game fades out and returns to the **main menu** on its own,
+   with a notice line at the top of the screen.
+5. `ModLog.txt` should show, in order: `offering salvage [source=LiveSlotFile, ...]`,
+   `save commits are latched off`, `quitting to the main menu without saving`,
+   `complete: the death save was prevented and the slot file was left untouched`,
+   `save commits re-enabled`. There must be **no** `Backed up slot N` line for the death and
+   **no** `Skipped backup ... permadeathMode=2` line — the death save never happened.
+6. Save select: the slot is **not** shattered. Load it — you are back at the noted bench
+   with the noted completion %/geo, and the run is still Steel Soul (steel mask HUD).
+7. Rest at a bench and confirm a new backup appears in `Documents\HKSaveBackup\slotN\` —
+   proof the save-suppression latch was released.
+
+## O. Death salvage — toggle ON (let it die)
+
+1. With the toggle still on, die again.
+2. At the prompt press `N` (or gamepad B), or just wait out the countdown.
+3. Expected: the vanilla death resumes from where it paused — shatter, PermaDeath cutscene,
+   shattered save slot; `ModLog.txt` shows `Death salvage declined` followed by the usual
+   `Skipped backup of slot N: Steel Soul run already dead`.
+4. The pre-death backups are still listed in the mod menu, so the run is recoverable the
+   manual way (test E).

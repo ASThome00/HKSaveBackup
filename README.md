@@ -83,10 +83,12 @@ Settings are editable in-game (*Options → Mods → HKSaveBackup*) and persiste
 | `BackupNormalSaves` | `false` | Also back up non-Steel-Soul saves. |
 | `BackupOnQuitOnly` | `false` | Only back up the save the game commits when you *Return to Menu*; bench, story and autosave commits are skipped. See the warning below. |
 | `SlotEnabled` | `[true, true, true, true]` | Per-save-slot switch for automatic backups (index 0 = slot 1). Restore is unaffected — a disabled slot still lists and restores its existing backups. |
+| `DeathSalvagePrompt` | `false` | **Off by default.** On a Steel Soul death, pause before the death is committed and offer *salvage the run* / *let it die*. See below. |
+| `DeathSalvagePromptSeconds` | `20` | How long that prompt waits before choosing "let it die" on its own. Clamped to 5–120. |
 
 *Options → Mods → HKSaveBackup* opens the settings; the restore surface is one step deeper,
-under *Save Manager*. Settings are safe to change from the pause menu; restoring is only
-offered at the main menu.
+under *Save Manager* (or directly via the title screen's *Save Backups* button). Settings
+are safe to change from the pause menu; restoring is only offered at the main menu.
 
 **About `BackupOnQuitOnly`:** it does what it says — the only save it keeps is the one
 `GameManager.ReturnToMainMenu` commits on the way out of gameplay. Quitting the game
@@ -94,6 +96,24 @@ outright (or a crash, or a power cut) writes no save at all in vanilla Hollow Kn
 produces no backup either. That makes this a "fewest possible backups" mode, not a safer
 one: on a Steel Soul run your newest backup can be hours behind the death it is meant to
 undo. Leave it off unless you specifically want that trade.
+
+### Death salvage (opt-in)
+
+Everything else in this mod is gameplay-inert: it copies files the game has already
+written. `DeathSalvagePrompt` is the one setting that is not, which is why it ships off.
+
+With it on, a Steel Soul death stops at `GameManager.PlayerDead` — *before* the game writes
+the death save — and asks:
+
+- **Salvage** (`Y` / `Enter` / gamepad A): the death save never happens, the game quits to
+  the main menu **without saving**, and your save slot is left holding the last save it
+  already had. In the normal case not a single file is written; a backup is only copied back
+  if the slot file is missing or has fallen behind the backup store.
+- **Let it die** (`N` / `Esc` / gamepad B, or the timeout): the vanilla death sequence runs
+  untouched — death save, shatter, PermaDeath scene.
+
+Salvage means "rewind to your last save", so it costs whatever you did since your last
+bench/quit save. It never resurrects the run in place, and it never edits a save file.
 
 `BackupDirectory` has no in-game editor (no text input in the menu system) — edit the JSON
 while the game is closed.
