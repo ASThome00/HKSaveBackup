@@ -20,11 +20,30 @@ namespace HKSaveBackup
         /// a game restart resets the cooldown, which errs toward taking a backup.</summary>
         private readonly Dictionary<int, DateTime> _lastBackupUtc = new Dictionary<int, DateTime>();
 
+        /// <summary>
+        /// Nesting depth of in-flight GameManager.ReturnToMainMenu coroutines. A counter rather
+        /// than a bool so an overlapping quit (emergency return racing a menu quit) cannot clear
+        /// the mark early. Touched only from the Unity main thread: the quit coroutine spins on
+        /// the save callback, and the desktop platform layer invokes that callback inline.
+        /// </summary>
+        private int _quitToMenuDepth;
+
         public BackupService(ILogger log, Func<GlobalSettings> settings, IBackupFileSystem fs)
         {
             _log = log;
             _settings = settings;
             _fs = fs;
+        }
+
+        /// <summary>Marks the start of a quit-to-menu sequence. Must never throw — it runs
+        /// inside a hooked game coroutine.</summary>
+        public void BeginQuitToMenu() => _quitToMenuDepth++;
+
+        /// <summary>Marks the end of a quit-to-menu sequence.</summary>
+        public void EndQuitToMenu()
+        {
+            if (_quitToMenuDepth > 0)
+                _quitToMenuDepth--;
         }
 
         public BackupStore CreateStore() =>
@@ -43,13 +62,16 @@ namespace HKSaveBackup
 
                 _lastBackupUtc.TryGetValue(saveSlot, out DateTime last);
                 BackupDecision decision = BackupPolicy.Decide(
-                    settings.Enabled,
-                    didSave,
-                    permadeathMode,
-                    settings.BackupNormalSaves,
-                    settings.CooldownMinutes,
-                    _lastBackupUtc.ContainsKey(saveSlot) ? last : (DateTime?)null,
-                    DateTime.UtcNow);
+                    enabled: settings.Enabled,
+                    slotEnabled: settings.IsSlotEnabled(saveSlot),
+                    gameReportedSaveSucceeded: didSave,
+                    permadeathMode: permadeathMode,
+                    backupNormalSaves: settings.BackupNormalSaves,
+                    backupOnQuitOnly: settings.BackupOnQuitOnly,
+                    isQuitToMenuSave: _quitToMenuDepth > 0,
+                    cooldownMinutes: settings.CooldownMinutes,
+                    lastBackupUtc: _lastBackupUtc.ContainsKey(saveSlot) ? last : (DateTime?)null,
+                    nowUtc: DateTime.UtcNow);
 
                 if (!decision.ShouldBackup)
                 {
@@ -105,6 +127,8 @@ namespace HKSaveBackup
                 case SkipReason.NormalSaveBackupsOff: return "normal (non-Steel-Soul) save and BackupNormalSaves is off";
                 case SkipReason.SteelSoulRunAlreadyDead: return "Steel Soul run already dead (permadeathMode=2 death save)";
                 case SkipReason.Cooldown: return "cooldown window has not elapsed";
+                case SkipReason.SlotDisabled: return "automatic backups are turned off for this slot";
+                case SkipReason.NotAQuitToMenuSave: return "not a quit-to-menu save and BackupOnQuitOnly is on";
                 default: return reason.ToString();
             }
         }

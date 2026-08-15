@@ -16,10 +16,12 @@ manager directly, instead of the Options → Mods → HKSaveBackup path. Require
 MenuButton into UIManager's main menu screen and its navigation graph — the mod-menu route
 stays as a fallback.
 
-### 2. Dedicated in-game mod settings
-Split settings out of the save-manager tree into their own screen so the pause-menu path
-lands on settings (which are safe anywhere) and the save manager remains a main-menu-only
-surface. Candidate additions: per-slot enable, backup-on-quit-only mode.
+### 2. Dedicated in-game mod settings — done
+The mod's root screen is now the settings list, with the save manager (the restore surface)
+one entry deeper, so the pause-menu path lands on settings and restore stays main-menu-only.
+Added `SlotEnabled` (per-slot backup switch) and `BackupOnQuitOnly` (back up only the save
+`GameManager.ReturnToMainMenu` commits). In-game verification: sections I–K of
+[docs/manual-test-script.md](docs/manual-test-script.md), pending.
 
 ### 3. Load a save straight from the restore flow
 After a successful restore, offer "Load this save now" — drive the save-select flow into
