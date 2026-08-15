@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using Modding.Menu;
 using Modding.Menu.Config;
@@ -18,6 +19,10 @@ namespace ToolAssistedSteelsoul
         private const string ButtonName = "ToolAssistedSteelsoulMainMenuButton";
 
         private const string Label = "Save Backups";
+
+        /// <summary>How long <see cref="SettleCursorsRoutine"/> waits for the title screen to
+        /// come up before giving up: ten seconds at 60fps, far past any real menu fade.</summary>
+        private const int CursorSettleFrameCap = 600;
 
         private readonly ToolAssistedSteelsoulMod _mod;
         private readonly ModMenu _menu;
@@ -95,6 +100,7 @@ namespace ToolAssistedSteelsoul
                 {
                     revived.submitAction = _ => OpenSaveManager();
                     revived.gameObject.SetActive(true);
+                    SettleCursors(revived);
                     Recalculate(list);
                     _mod.Log($"Re-enabled the \"{Label}\" button on the main menu.");
                     return;
@@ -117,6 +123,7 @@ namespace ToolAssistedSteelsoul
                 }, out button);
 
             PlaceAboveQuit(button, options, column);
+            SettleCursors(button);
 
             if (list != null)
             {
@@ -254,6 +261,70 @@ namespace ToolAssistedSteelsoul
             }
             rows.Sort((a, b) => b.anchoredPosition.y.CompareTo(a.anchoredPosition.y));
             return rows;
+        }
+
+        /// <summary>
+        /// Put the button's selection fleurs into their resting state on the first launch.
+        ///
+        /// The API builds each cursor as a bare Image plus an Animator running the vanilla
+        /// "Menu Fleur" controller (Modding.Menu.MenuButtonContent): the Image is given no
+        /// sprite of its own, because the controller's states are what assign one. An Animator
+        /// binds on OnEnable, and this button is built during UIManager.EditMenus into a title
+        /// screen that then simply stays up — nothing ever cycles it, so on a fresh launch the
+        /// controller never applies a state and both cursors render as the Image's own
+        /// untextured white box either side of the label. (Opening and closing the save manager
+        /// used to be the only cure, because that fade deactivates and reactivates the main
+        /// menu's canvas group, which is the enable the Animator was waiting for.)
+        ///
+        /// Rebind is that enable without the round trip: it drops the state machine back on the
+        /// controller's default state — hidden, the state every vanilla button rests in — and
+        /// the zero-length Update applies it on the spot, sprite included.
+        /// </summary>
+        private void SettleCursors(MenuButton button)
+        {
+            UIManager ui = UIManager.instance;
+            if (ui != null)
+                ui.StartCoroutine(SettleCursorsRoutine(button));
+        }
+
+        private IEnumerator SettleCursorsRoutine(MenuButton button)
+        {
+            // Rebind only works on a live object, and the column is not necessarily active
+            // yet while menus are still being edited. The cap keeps this from becoming an
+            // immortal coroutine if the title screen never appears at all.
+            for (int frame = 0; frame < CursorSettleFrameCap; frame++)
+            {
+                if (button == null)
+                    yield break;
+                if (button.gameObject.activeInHierarchy)
+                    break;
+                yield return null;
+            }
+
+            if (button == null || !button.gameObject.activeInHierarchy)
+                yield break;
+
+            // One live frame first, so the Animators have had their own OnEnable.
+            yield return null;
+
+            SettleCursor(button.leftCursor);
+            SettleCursor(button.rightCursor);
+        }
+
+        private void SettleCursor(Animator cursor)
+        {
+            try
+            {
+                if (cursor == null || cursor.runtimeAnimatorController == null || !cursor.isActiveAndEnabled)
+                    return;
+                cursor.Rebind();
+                cursor.Update(0f);
+            }
+            catch (Exception ex)
+            {
+                // Cosmetic only - a white box beats a broken title screen.
+                _mod.LogDebug($"Could not settle a main menu button cursor: {ex.Message}");
+            }
         }
 
         private void OpenSaveManager()

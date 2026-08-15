@@ -179,15 +179,19 @@ Do this one first, and on a throwaway Steel Soul save.
 
 ## P. Title screen: Save Backups opens and closes cleanly (feature 1)
 
-1. From the title screen, select **Save Backups**.
-2. Expected: the Hollow Knight logo, the subtitle and the whole button column fade out, and
+1. On the **first** title screen after launching the game, before opening any menu: the
+   **Save Backups** entry looks like every other button — no white boxes either side of the
+   label (those are the selection fleurs with no sprite applied yet), and the fleurs appear
+   only while it is highlighted.
+2. From the title screen, select **Save Backups**.
+3. Expected: the Hollow Knight logo, the subtitle and the whole button column fade out, and
    the Save Manager fades in on an empty background - no vanilla buttons showing through,
    and no logo behind the slot rows.
-3. Move the highlight up and down the slot rows. Only the mod screen responds; the vanilla
+4. Move the highlight up and down the slot rows. Only the mod screen responds; the vanilla
    buttons underneath must not take the highlight or a click.
-4. Press **Back** (or cancel/Esc/B).
-5. Expected: the Save Manager fades out, the logo, subtitle and button column fade back in,
+5. Press **Back** (or cancel/Esc/B).
+6. Expected: the Save Manager fades out, the logo, subtitle and button column fade back in,
    and the default title-screen button is highlighted again.
-6. Repeat the round trip two or three times, and once via Options -> Mods -> Tool Assisted
+7. Repeat the round trip two or three times, and once via Options -> Mods -> Tool Assisted
    Steelsoul -> Save Manager, whose Back must return to the settings screen rather than the
    title screen.

@@ -55,6 +55,11 @@
       <HintPath>$(HollowKnightRefs)\UnityEngine.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <!-- Main menu button: the selection fleurs are Animators. -->
+    <Reference Include="UnityEngine.AnimationModule">
+      <HintPath>$(HollowKnightRefs)\UnityEngine.AnimationModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
   </ItemGroup>
 
   <!-- Convenience: copy the built mod into the game's Mods folder when InstallToGame=true (set in local.props). -->
