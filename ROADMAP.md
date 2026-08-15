@@ -7,7 +7,8 @@ restore flow with pre-restore snapshot and Steam Cloud warning, mod-menu UI, tit
 Save Backups button, load-after-restore, and the opt-in death-salvage prompt.
 
 In-game verification status ([docs/manual-test-script.md](docs/manual-test-script.md)):
-sections A (mod loads) and B (Steel Soul backup) verified; C–O pending.
+sections A (mod loads), B (Steel Soul backup) and P (title-screen save manager) verified;
+C–O pending.
 
 ## Features
 
@@ -16,7 +17,12 @@ A dedicated "Save Backups" button on the title screen (placed above Quit) opens 
 manager directly, with "back" returning to the main menu; the Options → Mods route stays.
 Landed as `MainMenuButton.cs`: a `UIManager.EditMenus` injection into the vanilla button
 column and its `MenuButtonList` navigation, fully guarded — any failure leaves the title
-screen untouched. In-game verification pending.
+screen untouched. Verified in-game (section P) after two fixes that first pass turned up:
+`MainMenuTransition.cs`, which closes the gap in vanilla's own transitions (neither
+`HideCurrentMenu` nor `GoToMainMenu` knows how to move between the title screen and a mod
+menu, so the save manager drew over a live title screen and "back" did nothing), and
+`SettleCursors`, which rebinds the button's selection fleurs so they stop rendering as
+untextured white boxes on a fresh launch.
 
 ### 2. Dedicated in-game mod settings — done
 The mod's root screen is now the settings list, with the save manager (the restore surface)
