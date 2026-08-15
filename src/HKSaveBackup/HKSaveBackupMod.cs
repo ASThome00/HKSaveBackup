@@ -42,7 +42,7 @@ namespace HKSaveBackup
             Instance = this;
             _backupService = new BackupService(this, () => _settings, new RealFileSystem());
             _restoreService = new RestoreService(this, _backupService);
-            _menu = new ModMenu(this, _restoreService);
+            _menu = new ModMenu(this, _restoreService, new SaveLoadService(this));
 
             // SaveGame(int, Action<bool>) is the single commit path: both parameterless
             // overloads funnel into it, and it hands the platform layer a completion

@@ -79,3 +79,22 @@ Default backup folder: `Documents\HKSaveBackup\`.
 2. The game saves normally (no hang, no error dialog); `ModLog.txt` shows
    `Backup of slot N failed (game save is unaffected): ...`.
 3. Restore the folder's permissions and confirm the next bench rest backs up again.
+
+## I. Load straight from the restore flow (feature 3)
+
+1. From the title screen: *Options → Mods → HKSaveBackup → Restore Slot N*. The list's top
+   entry is "Restore Latest & Load" and names the newest non-snapshot backup.
+2. Select it. The confirmation screen still appears, still shows the Steam Cloud warning,
+   and its button reads "Restore & Load".
+3. Confirm. The mod menu fades out and the game loads slot N exactly as picking the slot on
+   the save-select would (start-game sting, fade, Knight_Pickup). `ModLog.txt` shows
+   `Loading slot N via GameManager.LoadGameFromUI`.
+4. Verify the loaded run is the backed-up state (scene, geo, completion), then quit to menu:
+   the title screen fades back in normally and the mod menu is reachable again.
+5. Plain restore path: pick an individual backup and confirm with "Restore Now". The result
+   screen now offers "Load This Save Now"; press it and repeat check 3.
+6. Refusal path: after a restore, corrupt `userN.dat` (or restore a dead Steel Soul save,
+   permadeathMode 2) and press "Load This Save Now". The result screen comes back saying
+   the save was not loaded and why; the menu still works and the restore itself stands.
+7. In-game path: pause → *Options → Mods → HKSaveBackup → Restore Slot N*. The screen still
+   refuses with the main-menu-only message, and no load button is offered anywhere.
