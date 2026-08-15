@@ -1,0 +1,64 @@
+# Runs on every push to main (so merges are checked) and on every pull request.
+#
+# What CI deliberately does NOT do is build src/ToolAssistedSteelsoul. That project compiles
+# against the game's Managed folder - a patched Assembly-CSharp, the Unity engine modules and
+# PlayMaker - none of which are ours to redistribute, and there is no public reference package
+# for Hollow Knight 1.5 to stand in for them. So the mod assembly is built locally by
+# scripts/package.ps1, and the release gate verifies the artifact that comes out of it.
+#
+# That leaves plenty for CI to own: ToolAssistedSteelsoul.Core is pure logic with no game or
+# Unity references at all, and it is where the backup, retention, selection and salvage rules
+# live, so the whole unit test suite runs here.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Unit tests
+    # windows-latest for .NET Framework 4.7.2: the target framework the mod actually ships on,
+    # tested on the runtime it ships on. Public repositories get these minutes free.
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Test
+        run: >
+          dotnet test src/ToolAssistedSteelsoul.Tests
+          -c Release
+          --logger "trx;LogFileName=tests.trx"
+          --results-directory TestResults
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: TestResults
+          retention-days: 14
+
+  collateral:
+    name: Release collateral
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Catches the drift that only bites at release time: a bumped ModVersion with a stale
+      # modlinks manifest, a Link pointing at the wrong tag, a malformed hash.
+      - name: Check release collateral
+        shell: pwsh
+        run: ./scripts/check-release-collateral.ps1

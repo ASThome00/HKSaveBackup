@@ -159,4 +159,43 @@ install. The backup/retention/naming/policy logic is pure and fully covered with
 game; hook and menu code is exercised in-game (see
 [docs/manual-test-script.md](docs/manual-test-script.md)).
 
-`scripts\package.ps1` builds a release zip and prints its SHA256 for the modlinks manifest.
+`scripts\package.ps1` builds a release zip, checks it, and prints its SHA256 for the
+modlinks manifest.
+
+## CI and releases
+
+[CI](.github/workflows/ci.yml) runs on every push to `main` and every pull request: the full
+unit test suite on .NET Framework 4.7.2, plus a check that the build version, the modlinks
+manifest and its download link still agree
+([`scripts/check-release-collateral.ps1`](scripts/check-release-collateral.ps1), also worth
+running by hand before tagging).
+
+CI does not build the mod assembly itself. That project compiles against the game's `Managed`
+folder — a patched `Assembly-CSharp`, the Unity engine modules, PlayMaker — none of which are
+ours to redistribute, and there is no public reference package for Hollow Knight 1.5 to stand
+in for them. `ToolAssistedSteelsoul.Core`, which holds the backup, retention, selection and
+salvage rules, has no game or Unity references at all, so the logic that can be tested is
+tested on every push and the assembly is built locally.
+
+Releasing is a gate rather than an automation. Build and stage the release from a machine
+with the game installed:
+
+```bash
+pwsh scripts/package.ps1
+```
+
+```bash
+gh release create v1.0.0.0 --draft --title "v1.0.0.0" dist/ToolAssistedSteelsoul.zip
+```
+
+```bash
+gh workflow run release.yml -f tag=v1.0.0.0
+```
+
+[The release workflow](.github/workflows/release.yml) then refuses to go on unless CI passed
+on that commit, the release is still a draft, the tag matches the build version, and the zip
+holds the right files at the right depth with the right assembly versions inside. Only after
+all of that does it stop for approval on the `release` environment. Approving publishes the
+draft and prints the ready-to-paste `<Manifest>` block for
+[hk-modding/modlinks](https://github.com/hk-modding/modlinks) — submitting it stays a manual
+decision.

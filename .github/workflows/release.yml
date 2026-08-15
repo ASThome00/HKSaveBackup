@@ -1,0 +1,137 @@
+# The release gate. Nothing here builds the mod - it cannot, see ci.yml - it checks a release
+# you have already staged and then publishes it once you approve.
+#
+# The flow:
+#   1. On a machine with Hollow Knight installed:  pwsh scripts/package.ps1
+#   2. Stage it as a draft:
+#        gh release create v<version> --draft --title "v<version>" dist/ToolAssistedSteelsoul.zip
+#   3. Open the gate:
+#        gh workflow run release.yml -f tag=v<version>
+#   4. The verify job re-checks everything, then the publish job waits on the "release"
+#      environment for your approval. Approve it and the draft goes public.
+#
+# Until you approve, nothing is visible to anyone: publishing the draft is the only
+# irreversible step and it is the only thing behind the gate.
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag of the staged draft release to publish (e.g. v1.0.0.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Verify the staged release
+    runs-on: windows-latest
+    outputs:
+      sha256: ${{ steps.hash.outputs.sha256 }}
+      version: ${{ steps.hash.outputs.version }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ inputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # The gate the request asks for: a release can only go out on a commit CI has passed.
+      - name: Require a green CI run for this commit
+        shell: pwsh
+        run: |
+          $runs = gh api "repos/$env:GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$env:GITHUB_SHA&status=completed" | ConvertFrom-Json
+          $passed = @($runs.workflow_runs | Where-Object { $_.conclusion -eq 'success' })
+          if ($passed.Count -eq 0) {
+            throw "No successful CI run for $env:GITHUB_SHA. Let CI finish on this commit (or re-run it) before releasing."
+          }
+          Write-Host "CI passed: $($passed[0].html_url)"
+
+      - name: Fetch the staged draft
+        shell: pwsh
+        run: |
+          $release = gh release view $env:TAG --json isDraft,assets,targetCommitish | ConvertFrom-Json
+          if (-not $release.isDraft) {
+            throw "$env:TAG is already published. This workflow publishes a draft; it will not re-release one."
+          }
+          if ($release.assets.name -notcontains 'ToolAssistedSteelsoul.zip') {
+            throw "$env:TAG has no ToolAssistedSteelsoul.zip asset. Run scripts/package.ps1 and attach dist/ToolAssistedSteelsoul.zip to the draft."
+          }
+          # A draft tags its target at publish time, so this run has to be on the commit the
+          # draft will actually become.
+          if ($release.targetCommitish -ne $env:GITHUB_REF_NAME -and $release.targetCommitish -ne $env:GITHUB_SHA) {
+            throw "$env:TAG targets '$($release.targetCommitish)' but this run is on '$env:GITHUB_REF_NAME'. Re-run the workflow from that branch."
+          }
+          New-Item -ItemType Directory -Force dist | Out-Null
+          gh release download $env:TAG --pattern 'ToolAssistedSteelsoul.zip' --dir dist
+
+      # Layout, contents and the assembly versions inside the zip - the checks that would
+      # otherwise only fail once somebody installed the mod and found it did not load.
+      - name: Check the artifact
+        shell: pwsh
+        run: ./scripts/check-release-collateral.ps1 -Zip dist/ToolAssistedSteelsoul.zip
+
+      - name: Hash it
+        id: hash
+        shell: pwsh
+        run: |
+          $hash = (Get-FileHash dist/ToolAssistedSteelsoul.zip -Algorithm SHA256).Hash
+          $version = ([xml](Get-Content Directory.Build.props)).SelectSingleNode("//ModVersion").InnerText.Trim()
+          if ($env:TAG -ne "v$version") {
+            throw "Tag $env:TAG does not match ModVersion $version."
+          }
+          "sha256=$hash" >> $env:GITHUB_OUTPUT
+          "version=$version" >> $env:GITHUB_OUTPUT
+
+  publish:
+    name: Publish
+    needs: verify
+    runs-on: ubuntu-latest
+    # The human gate. The "release" environment has required reviewers, so this job sits in
+    # "Waiting" until it is approved from the Actions run.
+    environment:
+      name: release
+      url: https://github.com/${{ github.repository }}/releases/tag/${{ inputs.tag }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ inputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Publish the release
+        run: gh release edit "$TAG" --draft=false --latest
+
+      # The manifest in the repository keeps its placeholder hash; what modlinks needs is this
+      # block, which is only true of a specific published zip. Submitting it stays a manual
+      # decision - see the note at the top of modlinks-manifest.xml.
+      - name: Emit the modlinks block
+        shell: pwsh
+        run: |
+          $manifest = (Get-Content modlinks-manifest.xml -Raw) -replace 'REPLACE_WITH_SHA256', '${{ needs.verify.outputs.sha256 }}'
+          $manifest = ($manifest -split "-->", 2)[-1].Trim()
+          New-Item -ItemType Directory -Force out | Out-Null
+          Set-Content out/modlinks-manifest.xml $manifest
+
+          $summary = @(
+            "## Released ``$env:TAG``",
+            "",
+            "SHA256: ``${{ needs.verify.outputs.sha256 }}``",
+            "",
+            "To submit to modlinks, append this to ``ModLinks.xml`` in hk-modding/modlinks:",
+            "",
+            '```xml',
+            $manifest,
+            '```'
+          ) -join "`n"
+          Set-Content $env:GITHUB_STEP_SUMMARY $summary
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: modlinks-manifest
+          path: out/modlinks-manifest.xml
