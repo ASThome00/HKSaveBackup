@@ -31,9 +31,9 @@ jobs:
     # tested on the runtime it ships on. Public repositories get these minutes free.
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '8.0.x'
 
@@ -44,7 +44,7 @@ jobs:
           --logger "trx;LogFileName=tests.trx"
           --results-directory TestResults
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: test-results
@@ -55,7 +55,7 @@ jobs:
     name: Release collateral
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Catches the drift that only bites at release time: a bumped ModVersion with a stale
       # modlinks manifest, a Link pointing at the wrong tag, a malformed hash.

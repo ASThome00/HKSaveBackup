@@ -40,7 +40,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       TAG: ${{ inputs.tag }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # The gate the request asks for: a release can only go out on a commit CI has passed.
       - name: Require a green CI run for this commit
@@ -102,7 +102,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       TAG: ${{ inputs.tag }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Publish the release
         run: gh release edit "$TAG" --draft=false --latest
@@ -131,7 +131,7 @@ jobs:
           ) -join "`n"
           Set-Content $env:GITHUB_STEP_SUMMARY $summary
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: modlinks-manifest
           path: out/modlinks-manifest.xml
