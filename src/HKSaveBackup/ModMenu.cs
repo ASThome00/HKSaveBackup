@@ -20,6 +20,9 @@ namespace HKSaveBackup
     /// while restore — destructive, and main-menu-only — sits one deliberate step deeper.
     /// It also matches what every plain IMenuMod produces, so the screen reads as vanilla.
     ///
+    /// The title screen's "Save Backups" button opens the Save Manager directly instead,
+    /// with "back" returning to the main menu — settings stay behind Options -> Mods.
+    ///
     /// The root screen is built once by the API's mod list. The save manager, per-slot backup
     /// list, confirmation, and result screens are rebuilt on every visit — the backup set and
     /// the main-menu gate change at runtime, and the mod list only calls GetMenuScreen once.
@@ -56,6 +59,7 @@ namespace HKSaveBackup
             _loader = loader;
         }
 
+        /// <summary>Entry point for the API's mod list, which owns the screen it is given.</summary>
         public MenuScreen BuildRootScreen(MenuScreen modListMenu)
         {
             MenuBuilder builder = MenuUtils.CreateMenuBuilderWithBackButton(
@@ -94,7 +98,8 @@ namespace HKSaveBackup
                         {
                             Text = "Browse and restore backups (main menu only)",
                         },
-                        SubmitAction = _ => OpenSaveManager(),
+                        SubmitAction = _ => OpenSaveManager(
+                            () => UIManager.instance.UIGoToDynamicMenu(_rootScreen)),
                         CancelAction = _ => UIManager.instance.UIGoToDynamicMenu(modListMenu),
                         Proceed = true,
                     });
@@ -105,20 +110,53 @@ namespace HKSaveBackup
         }
 
         /// <summary>
+        /// Entry point for the title-screen "Save Backups" button: the Save Manager opens
+        /// directly and "back" returns to the main menu. Settings stay behind Options -> Mods.
+        /// </summary>
+        public void OpenFromMainMenu() =>
+            OpenSaveManager(() => UIManager.instance.UIGoToMainMenu());
+
+        /// <summary>
+        /// MenuUtils.CreateMenuBuilderWithBackButton only knows how to return to another
+        /// MenuScreen; the title-screen copy has to return to the main menu instead. Same
+        /// layout and label as the API's version so both copies look identical.
+        /// </summary>
+        private static MenuBuilder CreateBuilderWithBackButton(
+            string title, Action goBack, out MenuButton backButton)
+        {
+            MenuButton built = null;
+            MenuBuilder builder = MenuUtils.CreateMenuBuilder(title).AddControls(
+                new SingleContentLayout(new AnchoredPosition(
+                    new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -64f))),
+                c => c.AddMenuButton("BackButton", new MenuButtonConfig
+                {
+                    Label = Language.Language.Get("NAV_BACK", "MainMenu"),
+                    CancelAction = _ => goBack(),
+                    SubmitAction = _ => goBack(),
+                    Proceed = true,
+                    Style = MenuButtonStyle.VanillaStyle,
+                }, out built));
+            backButton = built;
+            return builder;
+        }
+
+        /// <summary>
         /// The restore surface: one entry per save slot. Rebuilt on every visit so the per-slot
         /// "backups off" annotations track the settings screen the player just came from.
+        /// <paramref name="goBack"/> is what "back" and cancel do — the only thing that differs
+        /// between arriving from the mod-list root and from the title-screen button.
         /// </summary>
-        private void OpenSaveManager()
+        private void OpenSaveManager(Action goBack)
         {
-            // Root is the current screen here, so every screen below it can be retired.
+            // The player is standing on the screen above this one, so everything below it
+            // can be retired.
             RetireScreen(ref _resultScreen);
             RetireScreen(ref _confirmScreen);
             RetireScreen(ref _slotListScreen);
             RetireScreen(ref _saveManagerScreen);
             DestroyRetiredScreens();
 
-            MenuBuilder builder = MenuUtils.CreateMenuBuilderWithBackButton(
-                "Save Manager", _rootScreen, out _);
+            MenuBuilder builder = CreateBuilderWithBackButton("Save Manager", goBack, out _);
 
             builder.AddContent(RegularGridLayout.CreateVerticalLayout(105f), c =>
             {
@@ -134,7 +172,7 @@ namespace HKSaveBackup
                         Label = $"Restore Slot {slot}",
                         Description = new DescriptionInfo { Text = description },
                         SubmitAction = _ => OpenSlotList(capturedSlot),
-                        CancelAction = _ => UIManager.instance.UIGoToDynamicMenu(_rootScreen),
+                        CancelAction = _ => goBack(),
                         Proceed = true,
                     });
                 }
