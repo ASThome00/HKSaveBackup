@@ -17,3 +17,6 @@ local.props
 
 # Test results
 TestResults/
+
+# Session tooling (agent worktrees etc.)
+.claude/
