@@ -44,6 +44,17 @@
       <HintPath>$(HollowKnightRefs)\UnityEngine.InputLegacyModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <!-- Title-screen transition: UIManager.subtitleFSM is a PlayMakerFSM. PlayMaker is built
+         against the pre-split UnityEngine.dll, so that facade has to be referenced too for
+         PlayMakerFSM's MonoBehaviour base to resolve. -->
+    <Reference Include="PlayMaker">
+      <HintPath>$(HollowKnightRefs)\PlayMaker.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine">
+      <HintPath>$(HollowKnightRefs)\UnityEngine.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
   </ItemGroup>
 
   <!-- Convenience: copy the built mod into the game's Mods folder when InstallToGame=true (set in local.props). -->

@@ -99,7 +99,8 @@ namespace ToolAssistedSteelsoul
                             Text = "Browse and restore backups (main menu only)",
                         },
                         SubmitAction = _ => OpenSaveManager(
-                            () => UIManager.instance.UIGoToDynamicMenu(_rootScreen)),
+                            () => UIManager.instance.UIGoToDynamicMenu(_rootScreen),
+                            screen => UIManager.instance.UIGoToDynamicMenu(screen)),
                         CancelAction = _ => UIManager.instance.UIGoToDynamicMenu(modListMenu),
                         Proceed = true,
                     });
@@ -112,9 +113,13 @@ namespace ToolAssistedSteelsoul
         /// <summary>
         /// Entry point for the title-screen "Save Backups" button: the Save Manager opens
         /// directly and "back" returns to the main menu. Settings stay behind Options -> Mods.
+        ///
+        /// Both directions go through <see cref="MainMenuTransition"/> rather than the API's
+        /// UIGoToDynamicMenu/UIGoToMainMenu, which cannot fade the title screen out or the
+        /// mod screen back off it — see that class for the two vanilla gaps involved.
         /// </summary>
         public void OpenFromMainMenu() =>
-            OpenSaveManager(() => UIManager.instance.UIGoToMainMenu());
+            OpenSaveManager(MainMenuTransition.Leave, MainMenuTransition.Enter);
 
         /// <summary>
         /// MenuUtils.CreateMenuBuilderWithBackButton only knows how to return to another
@@ -143,10 +148,11 @@ namespace ToolAssistedSteelsoul
         /// <summary>
         /// The restore surface: one entry per save slot. Rebuilt on every visit so the per-slot
         /// "backups off" annotations track the settings screen the player just came from.
-        /// <paramref name="goBack"/> is what "back" and cancel do — the only thing that differs
-        /// between arriving from the mod-list root and from the title-screen button.
+        /// <paramref name="goBack"/> is what "back" and cancel do, and <paramref name="show"/>
+        /// is how the screen is entered — the only two things that differ between arriving
+        /// from the mod-list root and from the title-screen button.
         /// </summary>
-        private void OpenSaveManager(Action goBack)
+        private void OpenSaveManager(Action goBack, Action<MenuScreen> show)
         {
             // The player is standing on the screen above this one, so everything below it
             // can be retired.
@@ -179,7 +185,7 @@ namespace ToolAssistedSteelsoul
             });
 
             _saveManagerScreen = builder.Build();
-            UIManager.instance.UIGoToDynamicMenu(_saveManagerScreen);
+            show(_saveManagerScreen);
         }
 
         private List<IMenuMod.MenuEntry> BuildSettingsEntries()

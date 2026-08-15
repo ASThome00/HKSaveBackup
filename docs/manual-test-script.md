@@ -176,3 +176,18 @@ Do this one first, and on a throwaway Steel Soul save.
    `Skipped backup of slot N: Steel Soul run already dead`.
 4. The pre-death backups are still listed in the mod menu, so the run is recoverable the
    manual way (test E).
+
+## P. Title screen: Save Backups opens and closes cleanly (feature 1)
+
+1. From the title screen, select **Save Backups**.
+2. Expected: the Hollow Knight logo, the subtitle and the whole button column fade out, and
+   the Save Manager fades in on an empty background - no vanilla buttons showing through,
+   and no logo behind the slot rows.
+3. Move the highlight up and down the slot rows. Only the mod screen responds; the vanilla
+   buttons underneath must not take the highlight or a click.
+4. Press **Back** (or cancel/Esc/B).
+5. Expected: the Save Manager fades out, the logo, subtitle and button column fade back in,
+   and the default title-screen button is highlighted again.
+6. Repeat the round trip two or three times, and once via Options -> Mods -> Tool Assisted
+   Steelsoul -> Save Manager, whose Back must return to the settings screen rather than the
+   title screen.
