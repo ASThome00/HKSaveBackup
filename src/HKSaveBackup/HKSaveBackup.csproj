@@ -35,6 +35,15 @@
       <HintPath>$(HollowKnightRefs)\UnityEngine.TextRenderingModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <!-- Death-salvage prompt: IMGUI for the overlay, InputLegacy for keyboard polling. -->
+    <Reference Include="UnityEngine.IMGUIModule">
+      <HintPath>$(HollowKnightRefs)\UnityEngine.IMGUIModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.InputLegacyModule">
+      <HintPath>$(HollowKnightRefs)\UnityEngine.InputLegacyModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
   </ItemGroup>
 
   <!-- Convenience: copy the built mod into the game's Mods folder when InstallToGame=true (set in local.props). -->

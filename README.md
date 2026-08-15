@@ -81,6 +81,28 @@ Settings are editable in-game (*Options → Mods → HKSaveBackup*) and persiste
 | `MaxBackupsPerSlot` | `20` | Ring buffer size per slot; oldest backup pair is pruned first. |
 | `CooldownMinutes` | `0` | Minimum minutes between backups. `0` = every save. Saves are already naturally spaced (bench/story/quit), so this is an escape hatch, not a default. |
 | `BackupNormalSaves` | `false` | Also back up non-Steel-Soul saves. |
+| `DeathSalvagePrompt` | `false` | **Off by default.** On a Steel Soul death, pause before the death is committed and offer *salvage the run* / *let it die*. See below. |
+| `DeathSalvagePromptSeconds` | `20` | How long that prompt waits before choosing "let it die" on its own. Clamped to 5–120. |
+
+### Death salvage (opt-in)
+
+Everything else in this mod is gameplay-inert: it copies files the game has already
+written. `DeathSalvagePrompt` is the one setting that is not, which is why it ships off.
+
+With it on, a Steel Soul death stops at `GameManager.PlayerDead` — *before* the game writes
+the death save — and asks:
+
+- **Salvage** (`Y` / `Enter` / gamepad A): the death save never happens, the game quits to
+  the main menu **without saving**, and your save slot is left holding the last save it
+  already had. In the normal case not a single file is written; a backup is only copied back
+  if the slot file is missing or has fallen behind the backup store.
+- **Let it die** (`N` / `Esc` / gamepad B, or the timeout): the vanilla death sequence runs
+  untouched — death save, shatter, PermaDeath scene.
+
+Salvage means "rewind to your last save", so it costs whatever you did since your last
+bench/quit save. It never resurrects the run in place, and it never edits a save file.
+
+
 
 `BackupDirectory` has no in-game editor (no text input in the menu system) — edit the JSON
 while the game is closed.

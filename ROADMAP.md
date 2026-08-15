@@ -27,15 +27,20 @@ the restored slot (requeue GameManager.LoadGame path) instead of dropping the pl
 to navigate save select manually. Also covers "reload": boot the current slot back to its
 latest backup in one action.
 
-### 4. Death screen: salvage or let it die
+### 4. Death screen: salvage or let it die — *implemented, default-off*
 On a Steel Soul death, before the shatter sequence commits, present a choice: salvage the
-run (restore the latest backup and reload) or let it die (vanilla behavior).
+run or let it die (vanilla behavior). Behind `DeathSalvagePrompt` (off by default), because
+it is the one feature that is not gameplay-inert. In-game verification pending (sections
+I–K of [docs/manual-test-script.md](docs/manual-test-script.md)).
 
-**Design note:** this deliberately crosses v1's gameplay-inert line — it intercepts the
-death sequence (`HeroController` death coroutine flips permadeathMode 1→2, then
-`GameManager.PlayerDead` saves and loads the PermaDeath scene). Doing it without PlayMaker
-FSM edits means hooking the C# path around that flip/save, and the restore-while-loaded
-rule still applies: salvage must happen before the death save commits, or route through a
-forced quit-to-menu + restore + reload. Needs a design pass before implementation; ships
-default-off if it ships at all, so the mod stays honest for players who want vanilla
-permadeath stakes.
+**How it landed:** an `On.GameManager.PlayerDead` hook, no PlayMaker FSM edits. The
+interception sits between `HeroController.Die()`'s in-memory permadeathMode 1→2 flip and
+`orig_PlayerDead`'s death save, which is the last moment the slot file on disk is still the
+last good commit. "Let it die" simply runs the original enumerator. "Salvage" never invokes
+it: save commits are latched off in the mod's own `SaveGame` hook, the game is sent to the
+menu through `ReturnToMainMenu(DontSave)`, and the slot file is left exactly as it was —
+zero writes in the common case. A backup is only restored (through the normal
+`RestoreService`, once `Menu_Title` is reached, so the main-menu gate holds) when the slot
+file is missing or has fallen behind the backup store; that choice is pure logic in
+`Core/SalvagePolicy.cs`. Prompt UI is an IMGUI overlay with a timeout that defaults to
+vanilla death, since the vanilla UI stack is mid-transition during a death.
