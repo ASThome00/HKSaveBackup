@@ -32,7 +32,7 @@ release zip, or drop the mod folder produced below into place.
 <Steam>\steamapps\common\Hollow Knight\hollow_knight_Data\Managed\Mods\ToolAssistedSteelsoul\
 ```
 
-Launch the game; `ToolAssistedSteelsoul` appears in the top-left mod list on the title screen.
+Launch the game; `Tool Assisted Steelsoul` appears in the top-left mod list on the title screen.
 
 ## Using it
 
@@ -41,18 +41,24 @@ Soul run and a timestamped backup pair appears in the backup folder (default:
 `Documents\ToolAssistedSteelsoul\slotN\`):
 
 ```
-user1_20260814-193042_Crossroads_19.dat    <- byte-for-byte copy of the save
-user1_20260814-193042_Crossroads_19.json   <- metadata: scene, completion %, geo, playtime
+user1_20260814-193042_Crossroads_19.dat          <- byte-for-byte copy of the save
+user1_20260814-193042_Crossroads_19.json         <- metadata: scene, completion %, geo, playtime
+user1_20260814-193042_Crossroads_19.modded.json  <- the Modding API's per-save mod data, if present
 ```
 
-The scene name in the filename is deliberate: when you want "the backup from before I
-walked into the Colosseum", you can find it by eye.
+(Timestamps in filenames are UTC; the in-game menu shows your local time.) The scene name
+in the filename is deliberate: when you want "the backup from before I walked into the
+Colosseum", you can find it by eye. The `.modded.json` companion is other mods' per-save
+data (e.g. Benchwarp's unlocked benches), carried along so a restore doesn't desync them.
 
-**Restoring:** from the title screen, open *Options → Mods → Tool Assisted Steelsoul → Save Manager*,
-pick *Restore Slot N*, choose a backup (newest first, with completion/geo/scene shown), and
-confirm. The save-select screen refreshes immediately — no game restart needed to see the
-restored save. Restore is refused while a save is loaded, because the game would re-save
-the in-memory state over your restored file.
+**Restoring:** from the title screen, press the *Save Backups* button (added right above
+*Quit*), or go the long way via *Options → Mods → Tool Assisted Steelsoul → Save Manager*.
+Pick *Restore Slot N*, choose a backup (newest first, with completion/geo/scene shown), and
+confirm. The top entry, *Restore Latest & Load*, rolls the slot back to its newest real
+backup and starts playing it in one action; after any plain restore a *Load This Save Now*
+button does the same. The save-select screen refreshes immediately — no game restart needed
+to see the restored save. Restore is refused while a save is loaded, because the game would
+re-save the in-memory state over your restored file.
 
 ### The Steam Cloud caveat (read this once)
 
@@ -90,6 +96,12 @@ Settings are editable in-game (*Options → Mods → Tool Assisted Steelsoul*) a
 under *Save Manager* (or directly via the title screen's *Save Backups* button). Settings
 are safe to change from the pause menu; restoring is only offered at the main menu.
 
+`BackupDirectory` has no in-game editor (no text input in the menu system) — edit the JSON
+while the game is closed.
+
+Every backup, skip (with reason), prune, and restore is logged to `ModLog.txt` in the saves
+folder — if you ever wonder whether the mod is protecting you, the log is the evidence.
+
 **About `BackupOnQuitOnly`:** it does what it says — the only save it keeps is the one
 `GameManager.ReturnToMainMenu` commits on the way out of gameplay. Quitting the game
 outright (or a crash, or a power cut) writes no save at all in vanilla Hollow Knight, so it
@@ -115,20 +127,11 @@ the death save — and asks:
 Salvage means "rewind to your last save", so it costs whatever you did since your last
 bench/quit save. It never resurrects the run in place, and it never edits a save file.
 
-`BackupDirectory` has no in-game editor (no text input in the menu system) — edit the JSON
-while the game is closed.
-
-Every backup, skip (with reason), prune, and restore is logged to `ModLog.txt` in the saves
-folder — if you ever wonder whether the mod is protecting you, the log is the evidence.
-
 ## What it deliberately does not do
 
 - No savestates or mid-run rewind — backups happen at the game's own save commits only.
 - No save editing: files are copied byte-for-byte, never parsed or rewritten.
 - No cloud uploads, network calls, or telemetry. Local disk only.
-- The mod also carries each save's `userN.modded.json` (the Modding API's per-save mod
-  data, e.g. Benchwarp's unlocked benches) alongside the backup, so restoring doesn't
-  desync other mods.
 
 ## Building from source
 
@@ -151,8 +154,9 @@ each time you can create a `local.props` next to the solution (gitignored):
 </Project>
 ```
 
-Run the tests with `dotnet test`. The backup/retention/naming/policy logic is pure and
-fully covered without the game; hook and menu code is exercised in-game (see
+Run the tests with `dotnet test src/ToolAssistedSteelsoul.Tests` — they need no game
+install. The backup/retention/naming/policy logic is pure and fully covered without the
+game; hook and menu code is exercised in-game (see
 [docs/manual-test-script.md](docs/manual-test-script.md)).
 
 `scripts\package.ps1` builds a release zip and prints its SHA256 for the modlinks manifest.

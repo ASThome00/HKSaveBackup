@@ -3,18 +3,20 @@
 ## v1.0 — current
 
 Automatic post-commit backups, ring retention, sidecar metadata, modded.json companion,
-restore flow with pre-restore snapshot and Steam Cloud warning, mod-menu UI.
+restore flow with pre-restore snapshot and Steam Cloud warning, mod-menu UI, title-screen
+Save Backups button, load-after-restore, and the opt-in death-salvage prompt.
 
 In-game verification status ([docs/manual-test-script.md](docs/manual-test-script.md)):
-sections A (mod loads) and B (Steel Soul backup) verified; C–H pending.
+sections A (mod loads) and B (Steel Soul backup) verified; C–O pending.
 
-## Planned
+## Features
 
-### 1. Save manager on the main menu
-A dedicated button on the title screen (alongside Start Game / Options) opening the save
-manager directly, instead of the Options → Mods → Tool Assisted Steelsoul path. Requires injecting a
-MenuButton into UIManager's main menu screen and its navigation graph — the mod-menu route
-stays as a fallback.
+### 1. Save manager on the main menu — done
+A dedicated "Save Backups" button on the title screen (placed above Quit) opens the save
+manager directly, with "back" returning to the main menu; the Options → Mods route stays.
+Landed as `MainMenuButton.cs`: a `UIManager.EditMenus` injection into the vanilla button
+column and its `MenuButtonList` navigation, fully guarded — any failure leaves the title
+screen untouched. In-game verification pending.
 
 ### 2. Dedicated in-game mod settings — done
 The mod's root screen is now the settings list, with the save manager (the restore surface)
@@ -23,17 +25,20 @@ Added `SlotEnabled` (per-slot backup switch) and `BackupOnQuitOnly` (back up onl
 `GameManager.ReturnToMainMenu` commits). In-game verification: sections I–K of
 [docs/manual-test-script.md](docs/manual-test-script.md), pending.
 
-### 3. Load a save straight from the restore flow
-After a successful restore, offer "Load this save now" — drive the save-select flow into
-the restored slot (requeue GameManager.LoadGame path) instead of dropping the player back
-to navigate save select manually. Also covers "reload": boot the current slot back to its
-latest backup in one action.
+### 3. Load a save straight from the restore flow — done
+After a successful restore the result screen offers "Load This Save Now", and the backup
+list's top entry is "Restore Latest & Load" (reload the slot's newest non-snapshot backup
+in one action). Landed as `SaveLoadService.cs`: re-reads the restored slot with
+`GetSaveStatsForSlot`, applies the vanilla save-select guards (unreadable file, shattered
+permadeathMode 2), fades the mod menu out, and hands off to `GameManager.LoadGameFromUI` —
+every failure before the hand-off falls back to the result screen. In-game verification:
+section L of [docs/manual-test-script.md](docs/manual-test-script.md), pending.
 
 ### 4. Death screen: salvage or let it die — *implemented, default-off*
 On a Steel Soul death, before the shatter sequence commits, present a choice: salvage the
 run or let it die (vanilla behavior). Behind `DeathSalvagePrompt` (off by default), because
 it is the one feature that is not gameplay-inert. In-game verification pending (sections
-I–K of [docs/manual-test-script.md](docs/manual-test-script.md)).
+M–O of [docs/manual-test-script.md](docs/manual-test-script.md)).
 
 **How it landed:** an `On.GameManager.PlayerDead` hook, no PlayMaker FSM edits. The
 interception sits between `HeroController.Die()`'s in-memory permadeathMode 1→2 flip and
